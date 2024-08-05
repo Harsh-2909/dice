@@ -1,10 +1,11 @@
 package core
 
 import (
-	"gotest.tools/v3/assert"
 	"strconv"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 type testCase struct {
@@ -32,6 +33,11 @@ func testEvalSET(t *testing.T) {
 		"key val pair and EX no val":     {input: []string{"KEY", "VAL", "EX"}, output: []byte("-ERR syntax error\r\n")},
 		"key val pair and valid EX":      {input: []string{"KEY", "VAL", "EX", "2"}, output: RESP_OK},
 		"key val pair and invalid EX":    {input: []string{"KEY", "VAL", "EX", "invalid_expiry_val"}, output: []byte("-ERR value is not an integer or out of range\r\n")},
+		"key val pair and EXAT no val":   {input: []string{"KEY", "VAL", "EXAT"}, output: []byte("-ERR syntax error\r\n")},
+		"key val pair and invalid EXAT":  {input: []string{"KEY", "VAL", "EXAT", "invalid_expiry_val"}, output: []byte("-ERR value is not an integer or out of range\r\n")},
+		"key val pair and expired EXAT":  {input: []string{"KEY", "VAL", "EXAT", "2"}, output: RESP_OK},
+		"key val pair and negative EXAT": {input: []string{"KEY", "VAL", "EXAT", "-123456"}, output: []byte("-ERR invalid expire time in 'set' command\r\n")},
+		"key val pair and valid EXAT":    {input: []string{"KEY", "VAL", "EXAT", strconv.FormatInt(time.Now().Add(2*time.Minute).Unix(), 10)}, output: RESP_OK},
 		"key val pair and PXAT no val":   {input: []string{"KEY", "VAL", "PXAT"}, output: []byte("-ERR syntax error\r\n")},
 		"key val pair and invalid PXAT":  {input: []string{"KEY", "VAL", "PXAT", "invalid_expiry_val"}, output: []byte("-ERR value is not an integer or out of range\r\n")},
 		"key val pair and expired PXAT":  {input: []string{"KEY", "VAL", "PXAT", "2"}, output: RESP_OK},

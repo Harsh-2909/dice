@@ -1,10 +1,11 @@
 package tests
 
 import (
-	"gotest.tools/v3/assert"
 	"strconv"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestSet(t *testing.T) {
@@ -41,7 +42,8 @@ func TestSet(t *testing.T) {
 
 func TestSetWithOptions(t *testing.T) {
 	conn := getLocalConnection()
-	expiryTime := strconv.FormatInt(time.Now().Add(1*time.Minute).UnixMilli(), 10)
+	expiryTimeInMs := strconv.FormatInt(time.Now().Add(1*time.Minute).UnixMilli(), 10)
+	expiryTimeInSec := strconv.FormatInt(time.Now().Add(1*time.Minute).Unix(), 10)
 	defer conn.Close()
 
 	testCases := []struct {
@@ -56,12 +58,12 @@ func TestSetWithOptions(t *testing.T) {
 		},
 		{
 			name:     "PXAT option",
-			commands: []string{"SET k v PXAT " + expiryTime, "GET k"},
+			commands: []string{"SET k v PXAT " + expiryTimeInMs, "GET k"},
 			expected: []interface{}{"OK", "v"},
 		},
 		{
 			name:     "PXAT option with delete",
-			commands: []string{"SET k1 v1 PXAT " + expiryTime, "GET k1", "SLEEP 2", "DEL k1"},
+			commands: []string{"SET k1 v1 PXAT " + expiryTimeInMs, "GET k1", "SLEEP 2", "DEL k1"},
 			expected: []interface{}{"OK", "v1", "OK", int64(1)},
 		},
 		{
@@ -88,6 +90,21 @@ func TestSetWithOptions(t *testing.T) {
 			name:     "XX option",
 			commands: []string{"SET k v XX EX 1", "GET k", "SLEEP 2", "GET k", "SET k v XX EX 1", "GET k"},
 			expected: []interface{}{"(nil)", "(nil)", "OK", "(nil)", "(nil)", "(nil)"},
+		},
+		{
+			name:     "EXAT option",
+			commands: []string{"SET k v EXAT " + expiryTimeInSec, "GET k"},
+			expected: []interface{}{"OK", "v"},
+		},
+		{
+			name:     "EXAT option with delete",
+			commands: []string{"SET k1 v1 EXAT " + expiryTimeInSec, "GET k1", "SLEEP 2", "DEL k1"},
+			expected: []interface{}{"OK", "v1", "OK", int64(1)},
+		},
+		{
+			name:     "EXAT option with invalid unix time ms",
+			commands: []string{"SET k2 v2 EXAT 123123", "GET k2"},
+			expected: []interface{}{"OK", "(nil)"},
 		},
 	}
 
