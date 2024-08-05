@@ -58,8 +58,10 @@ func evalPING(args []string) []byte {
 // args must contain key and value.
 // args can also contain multiple options -
 //
-//	EX or ex which will set the expiry time(in secs) for the key
-//	PXAT or PX which will the specified Unix time at which the key will expire, in milliseconds (a positive integer).
+//	EX or ex which will set the specified expire time, in seconds (a positive integer).
+//	PX or px which will set the specified expire time, in milliseconds (a positive integer).
+//	EXAT or exat which will set the specified Unix time at which the key will expire, in seconds (a positive integer).
+//	PXAT or pxat which will set the specified Unix time at which the key will expire, in milliseconds (a positive integer).
 //	XX orr xx which will only set the key if it already exists.
 //
 // Returns encoded error response if at least a <key, value> pair is not part of args
@@ -90,6 +92,28 @@ func evalSET(args []string) []byte {
 				return Encode(errors.New("ERR value is not an integer or out of range"), false)
 			}
 			exDurationMs = exDurationSec * 1000
+
+		case "EXAT", "exat":
+			i++
+			if i == len(args) {
+				return Encode(errors.New("ERR syntax error"), false)
+			}
+
+			exDurationUnixSec, err := strconv.ParseInt(args[i], 10, 64)
+			if err != nil {
+				return Encode(errors.New("ERR value is not an integer or out of range"), false)
+			}
+
+			if exDurationUnixSec < 0 {
+				return Encode(errors.New("ERR invalid expire time in 'set' command"), false)
+			}
+
+			exDurationMs = exDurationUnixSec*1000 - time.Now().UnixMilli()
+			// If the expiry time is in the past, set exDurationMs to 0
+			// This will be used to signal immediate expiration
+			if exDurationMs < 0 {
+				exDurationMs = 0
+			}
 
 		case "PXAT", "pxat":
 			i++
